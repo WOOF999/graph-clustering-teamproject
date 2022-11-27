@@ -162,6 +162,7 @@ def main():
                     break
 
                 min_entropy = min(entropys)
+                entropy_history.append(min_entropy)
 
                 if min_entropy == 100:  # 더 이상 graph entropy가 낮아지지 않을 때 클러스터로 분리 후 stop
                     final_cluster.append(seed_cluster)
