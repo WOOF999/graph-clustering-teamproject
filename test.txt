@@ -13,3 +13,6 @@ Z	Y
 Z	X
 Y	X
 A	K
+Z	I
+Y	I
+X	I

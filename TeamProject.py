@@ -50,8 +50,6 @@ with open("ground_truth.txt", 'r') as file:
     for line in file:
         ground_truth.append(line.split())
 
-
-
 def calculate_F1_score(cluster):
     f1_score_list=list()
     sum_f1_score=0
@@ -136,12 +134,6 @@ def calculate_graph_entropy(seed_cluster, neighbors):
     # Graph entropy e(G(V,E))=SUM(e(v))
     return sum(graph_entropy)
 
-def compare_graph_entropy(init_entropy, fin_entropy):
-    if init_entropy > fin_entropy:
-        return 1
-    else:
-        return 0
-
 def make_output_txt_file():
     cluster_f = open('TeamProject_output.txt', 'a')
     for cluster in final_cluster:
@@ -167,7 +159,7 @@ def main():
         subgraphs[i] = sorted(subgraphs[i])
 
     for i in range(len(subgraphs)):  # subgraph 별로 clustering 진행
-
+        entropy_history=list()
         pass_count = 0  # entropy 값이 모두 0이 나오는 지 여부
 
         if len(subgraphs[i]) < 4:  # subgraph의 vertex 개수가 3개 이하면 pass
@@ -184,7 +176,7 @@ def main():
             init_entropy = calculate_graph_entropy(seed_cluster, neighbors)
             if init_entropy == 0:
                 break
-            entropy_history = list()
+            #entropy_history = list()
             entropy_history.append(init_entropy)
 
             while True:
@@ -198,6 +190,7 @@ def main():
                     temp_neighbors = check_neighbors(temp_seed_cluster)
                     temp_entropy = calculate_graph_entropy(temp_seed_cluster, temp_neighbors)
                     if temp_entropy > entropy_history[-1]:
+                        temp_seed_cluster.remove(neighbors[j])
                         entropys.append(100)
                     else:
                         entropys.append(temp_entropy)
@@ -209,31 +202,36 @@ def main():
                 min_entropy = min(entropys)
                 entropy_history.append(min_entropy)
 
-                if min_entropy == 100:  # 더 이상 graph entropy가 낮아지지 않을 때 클러스터로 분리 후 stop
+                
+                # 더 이상 graph entropy가 낮아지지 않을 때 클러스터로 분리 후 stop
+                if min_entropy==100 :
                     final_cluster.append(seed_cluster)
+                    entropy_history.clear()
                     for value in seed_cluster:
                         if value not in subgraphs[i]:
                             continue
                         else:
                             subgraphs[i].remove(value)
-                    break
-
+                break
+                '''
                 entropy_history.append(min_entropy)  # entropy 내역에 저장
 
                 for j in range(len(entropys)):  # 병합했을 때 entropy 값이 최소가 되는 neighbor 병합
                     if entropys[j] == min_entropy:
-                        seed_cluster.append(neighbors[j])
+                        seed_cluster.append(neighbors[j])'''
 
     sum_of = []
-    #for i in range(len(final_cluster)):
-        #print(len(final_cluster[i]))
-        #sum_of.append(len(final_cluster[i]))
-    #print(sum(sum_of))
-    #print(final_cluster)
+    for i in range(len(final_cluster)):
+        print(len(final_cluster[i]))
+        sum_of.append(len(final_cluster[i]))
+    print(sum(sum_of))
+    print(final_cluster)
+    
 
     print(calculate_F1_score(assignment5_output))
     print(calculate_F1_score(assignment6_output))
-  
+    #print(calculate_F1_score(final_cluster))
+
     print("elapsed time : ", end='')
     print(f"{time.time() - start:.6f} sec")
 
