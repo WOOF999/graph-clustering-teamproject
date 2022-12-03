@@ -63,6 +63,7 @@ def calculate_F1_score(cluster):
     sum_f1_score=0
     for cluster_index in range(len(cluster)):
         cluster_set=set(cluster[cluster_index])
+        f1_score_list.clear()
         for ground_truth_index in range(len(ground_truth)):
             ground_truth_set=set(ground_truth[ground_truth_index])
             TP=len(ground_truth_set&cluster_set)
@@ -74,7 +75,10 @@ def calculate_F1_score(cluster):
             recall=TP/(TP+FN)
             f1_score=2*precision*recall/(precision+recall)
             f1_score_list.append(f1_score)
-        sum_f1_score+=max(f1_score_list)
+        if len(f1_score_list)==0:
+            continue
+        else:
+            sum_f1_score+=max(f1_score_list)
     return sum_f1_score/len(cluster)
 
 def bfs(graph, start):  # 탐색 알고리즘
@@ -87,6 +91,8 @@ def bfs(graph, start):  # 탐색 알고리즘
             visited.append(n)
             queue += graph[n] - set(visited)
     return visited
+
+
 
 def check_neighbors(node1,node2):
     temp_1 = G[node1]
@@ -167,10 +173,11 @@ def main():
 
     make_output_txt_file(subgraphs)
    
-    print(calculate_F1_score(assignment5_output))
-    print(calculate_F1_score(assignment6_output))
+    #print(calculate_F1_score(assignment5_output))
+    #print(calculate_F1_score(assignment6_output))
     print(calculate_F1_score(TeamProject_output))   
     print(len(ground_truth[0]))
+    
     print("elapsed time : ", end='')
     print(f"{time.time() - start:.6f} sec")
 
