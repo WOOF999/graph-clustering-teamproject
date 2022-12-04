@@ -10,37 +10,6 @@ TeamProject_output=list()
 ground_truth=list()
 
 
-# make graph
-with open("test.txt", 'r') as file:
-    for line in file:
-        n1, n2 = line.strip().split('\t')
-        try:
-            G[n1].add(n2)
-        except KeyError:
-            G[n1] = {n2}
-        try:
-            G[n2].add(n1)
-        except KeyError:
-            G[n2] = {n1}
-
-#make evaluation set
-with open("assignment5_output.txt", 'r') as file:
-    for line in file:
-        assignment5_output.append(line.split())
-    for i in range(len(assignment5_output)):
-        del assignment5_output[i][0]
-
-with open("assignment6_output.txt", 'r') as file:
-    for line in file:
-        assignment6_output.append(line.split())
-    for i in range(len(assignment6_output)):
-        del assignment6_output[i][0]
-
-with open("ground_truth.txt", 'r') as file:
-    for line in file:
-        ground_truth.append(line.split())
-
-
 def calculate_F1_score(cluster):
     f1_score_list=list()
     sum_f1_score=0
@@ -154,7 +123,7 @@ def calculate_density(graph, subgraph):
     return 2 * edge_num / (vertex_num * (vertex_num - 1))
 
 
-def make_output_txt_file():
+def make_output_txt_file(final_cluster):
     cluster_f = open('TeamProject_output.txt', 'w')
     for cluster in final_cluster:
         cluster_f.write(str(len(cluster)))
@@ -209,127 +178,107 @@ def main():
             final_cluster.append(subgraphs[i])
             continue
 
-        while True:
+        # max clustering coefficient 측정
+        value_list = list()
+        for j in range(len(clustering_coefficient_list)):
+            value_list.append(clustering_coefficient_list[j][1])
+        max_clustering_coefficient = max(value_list)
 
-            # 후보 node가 더 이상 없을 시 stop
-            if len(subgraphs[i]) == 0:
-                break
+        # clustering coefficient 값이 최대치인 node들 골라내기
+        seed_list = list()
+        for j in range(len(clustering_coefficient_list)):
+            if clustering_coefficient_list[j][1] == max_clustering_coefficient:
+                seed_list.append(clustering_coefficient_list[j][0])
 
-            # clustering coefficient가 측정되지 않을 경우 final cluster로 분리 후 다음 subgraph로 이동
-            if len(clustering_coefficient_list) == 0:
-                final_cluster.append(subgraphs[i])
-                break
+        # 골라진 seed node들로 cluster 만들기
+        for j in range(len(seed_list)):
 
+            # 만약 해당 seed node가 만들어진 cluster 안에 포함되어 있다면 다음 seed node로 넘어가기
+            temp_list = list()
+            for k in range(len(final_cluster)):
+                temp_list.extend(final_cluster[k])
+            if seed_list[j] in temp_list:
+                continue
 
-            # max clustering coefficient 측정
-            value_list = list()
-            for j in range(len(clustering_coefficient_list)):
-                value_list.append(clustering_coefficient_list[j][1])
-            max_clustering_coefficient = max(value_list)
+            # seed cluster 생성
+            seed_cluster = list()
+            seed_cluster = make_seed_cluster(G, seed_list[j])
 
-            # clustering coefficient 값이 최대치인 node들 골라내기
-            seed_list = list()
-            for j in range(len(clustering_coefficient_list)):
-                if clustering_coefficient_list[j][1] == max_clustering_coefficient:
-                    seed_list.append(clustering_coefficient_list[j][0])
+            # density 저장
+            pre_density = calculate_density(G, seed_cluster)
 
-            # 골라진 seed node들로 cluster 만들기
-            for j in range(len(seed_list)):
+            # iterative part
+            while True:
 
-                # 만약 해당 seed node가 만들어진 cluster 안에 포함되어 있다면 다음 seed node로 넘어가기
-                temp_list = list()
-                for k in range(len(final_cluster)):
-                    temp_list.extend(final_cluster[k])
-                if seed_list[j] in temp_list:
-                    continue
+                # seed cluster의 neighbor들 골라내기
+                neighbors = list()
+                neighbors = check_neighbors(G, seed_cluster)
 
-                # seed cluster 생성
-                seed_cluster = list()
-                seed_cluster = make_seed_cluster(G, seed_list[j])
+                # neighbor가 하나도 없을 경우 stop
+                if len(neighbors) == 0:
+                    break
 
-                # density 저장
-                pre_density = calculate_density(G, seed_cluster)
+                # neighbor들 중 seed cluster와 연결된 edge가 가장 많은 neighbor 골라내기
+                max_edge_list = list()
+                max_edge_list = find_max_edge_vertex(G, seed_cluster, neighbors)
 
-                # iterative part
-                while True:
+                # 병합 과정
+                # max edge를 가진 node가 하나만 있을 경우
+                if len(max_edge_list) == 1:
+                    seed_cluster.append(max_edge_list[0][0])
 
-                    # seed cluster의 neighbor들 골라내기
-                    neighbors = list()
-                    neighbors = check_neighbors(G, seed_cluster)
+                    # density 측정
+                    density = calculate_density(G, seed_cluster)
 
-                    # neighbor가 하나도 없을 경우 stop
-                    if len(neighbors) == 0:
+                    # density가 증가하지 않을 시 stop
+                    if density < pre_density:
+                        seed_cluster.remove(max_edge_list[0][0])
                         break
+                    # 증가할 시 density 저장 후 continue
+                    else:
+                        pre_density = density
+                # max edge를 가진 node가 여러 개일 경우
+                else:
+                    # max edge를 가진 node들의 degree 측정
+                    max_degree_list = list()
+                    max_degree_list = check_vertex_degree(G, max_edge_list)
 
-                    # neighbor들 중 seed cluster와 연결된 edge가 가장 많은 neighbor 골라내기
-                    max_edge_list = list()
-                    max_edge_list = find_max_edge_vertex(G, seed_cluster, neighbors)
-
-                    # 병합 과정
-                    # max edge를 가진 node가 하나만 있을 경우
-                    if len(max_edge_list) == 1:
-                        seed_cluster.append(max_edge_list[0][0])
+                    # degree가 가장 큰 node가 하나만 있을 경우
+                    if len(max_degree_list) == 1:
+                        seed_cluster.append(max_degree_list[0][0])
 
                         # density 측정
                         density = calculate_density(G, seed_cluster)
 
                         # density가 증가하지 않을 시 stop
                         if density < pre_density:
-                            seed_cluster.remove(max_edge_list[0][0])
+                            seed_cluster.remove(max_degree_list[0][0])
                             break
                         # 증가할 시 density 저장 후 continue
                         else:
                             pre_density = density
-                    # max edge를 가진 node가 여러 개일 경우
+                    # degree가 가장 큰 node가 여러 개일 경우
                     else:
-                        # max edge를 가진 node들의 degree 측정
-                        max_degree_list = list()
-                        max_degree_list = check_vertex_degree(G, max_edge_list)
+                        for k in range(len(max_degree_list)):
+                            seed_cluster.append(max_degree_list[k][0])
 
-                        # degree가 가장 큰 node가 하나만 있을 경우
-                        if len(max_degree_list) == 1:
-                            seed_cluster.append(max_degree_list[0][0])
+                        # density 측정
+                        density = calculate_density(G, seed_cluster)
 
-                            # density 측정
-                            density = calculate_density(G, seed_cluster)
-
-                            # density가 증가하지 않을 시 stop
-                            if density < pre_density:
-                                seed_cluster.remove(max_degree_list[0][0])
-                                break
-                            # 증가할 시 density 저장 후 continue
-                            else:
-                                pre_density = density
-                        # degree가 가장 큰 node가 여러 개일 경우
-                        else:
+                        # density가 증가하지 않을 시 stop
+                        if density < pre_density:
                             for k in range(len(max_degree_list)):
-                                seed_cluster.append(max_degree_list[k][0])
+                                seed_cluster.remove(max_degree_list[k][0])
+                            break
+                        # 증가할 시 density 저장 후 continue
+                        else:
+                            pre_density = density
 
-                            # density 측정
-                            density = calculate_density(G, seed_cluster)
-
-                            # density가 증가하지 않을 시 stop
-                            if density < pre_density:
-                                for k in range(len(max_degree_list)):
-                                    seed_cluster.remove(max_degree_list[k][0])
-                                break
-                            # 증가할 시 density 저장 후 continue
-                            else:
-                                pre_density = density
-
-                # 병합이 끝났을 시 final cluster로 분리 후 선택된 subgraph의 후보 노드에서 제외
-                final_cluster.append(seed_cluster)
-                for k in range(len(final_cluster[-1])):
-                    if final_cluster[-1][k] not in subgraphs[i]:
-                        continue
-                    subgraphs[i].remove(final_cluster[-1][k])
-
-    for i in range(len(final_cluster)):
-        print(calculate_density(G, final_cluster[i]))
-        if calculate_density(G, final_cluster[i]) == 1:
-            count += 1
+            # 병합이 끝났을 시 final cluster로 분리
+            final_cluster.append(seed_cluster)
 
     # output 파일 추출
+    final_cluster.sort(key=len,reverse=True)
     make_output_txt_file(final_cluster)
 
     # make evaluation set
@@ -361,7 +310,8 @@ def main():
     print(calculate_F1_score(TeamProject_output))
 
     # elapsed 시간 측정
-
+    print("elapsed time : ", end='')
+    print(f"{time.time() - start:.6f} sec")
 
 if __name__ == "__main__":
     main()
