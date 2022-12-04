@@ -9,6 +9,38 @@ assignment6_output=list()
 TeamProject_output=list()
 ground_truth=list()
 
+
+# make graph
+with open("test.txt", 'r') as file:
+    for line in file:
+        n1, n2 = line.strip().split('\t')
+        try:
+            G[n1].add(n2)
+        except KeyError:
+            G[n1] = {n2}
+        try:
+            G[n2].add(n1)
+        except KeyError:
+            G[n2] = {n1}
+
+#make evaluation set
+with open("assignment5_output.txt", 'r') as file:
+    for line in file:
+        assignment5_output.append(line.split())
+    for i in range(len(assignment5_output)):
+        del assignment5_output[i][0]
+
+with open("assignment6_output.txt", 'r') as file:
+    for line in file:
+        assignment6_output.append(line.split())
+    for i in range(len(assignment6_output)):
+        del assignment6_output[i][0]
+
+with open("ground_truth.txt", 'r') as file:
+    for line in file:
+        ground_truth.append(line.split())
+
+
 def calculate_F1_score(cluster):
     f1_score_list=list()
     sum_f1_score=0
@@ -82,6 +114,7 @@ def check_neighbors(graph, seed_cluster):
     temp_c = list(set(temp_set))
     return temp_c
 
+
 def find_max_edge_vertex(graph, seed_cluster, neighbors_list):
     max_edge_vertex_list = list()
     temp = list()
@@ -121,8 +154,8 @@ def calculate_density(graph, subgraph):
     return 2 * edge_num / (vertex_num * (vertex_num - 1))
 
 
-def make_output_txt_file(final_cluster):
-    cluster_f = open('TeamProject_output.txt', 'a')
+def make_output_txt_file():
+    cluster_f = open('TeamProject_output.txt', 'w')
     for cluster in final_cluster:
         cluster_f.write(str(len(cluster)))
         cluster_f.write(": ")
@@ -162,12 +195,14 @@ def main():
     for i in range(len(subgraphs)):
         subgraphs[i] = sorted(subgraphs[i])
 
+
     # subgraph 선택 후 clustering 작업 수행
     for i in range(len(subgraphs)):
 
         # clustering coefficient 측정
         clustering_coefficient_list = list()
         clustering_coefficient_list = calculate_clustering_coefficient(G, subgraphs[i])
+
 
         # clustering coefficient가 측정되지 않을 경우 final cluster로 분리 후 다음 subgraph로 이동
         if len(clustering_coefficient_list) == 0:
@@ -180,14 +215,11 @@ def main():
             if len(subgraphs[i]) == 0:
                 break
 
-            # clustering coefficient 측정
-            clustering_coefficient_list = list()
-            clustering_coefficient_list = calculate_clustering_coefficient(G, subgraphs[i])
-
             # clustering coefficient가 측정되지 않을 경우 final cluster로 분리 후 다음 subgraph로 이동
             if len(clustering_coefficient_list) == 0:
                 final_cluster.append(subgraphs[i])
                 break
+
 
             # max clustering coefficient 측정
             value_list = list()
@@ -329,8 +361,7 @@ def main():
     print(calculate_F1_score(TeamProject_output))
 
     # elapsed 시간 측정
-    print("elapsed time : ", end='')
-    print(f"{time.time() - start:.6f} sec")
+
 
 if __name__ == "__main__":
     main()
